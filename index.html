@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── TOKENS ─────────────────────────────────────────────── */
+    :root {
+      --amber:       #e8a44a;
+      --amber-dim:   #c4883a;
+      --amber-glow:  rgba(232,164,74,.18);
+      --red:         #e86060;
+      --green:       #5ec98c;
+
+      --radius-sm:  6px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+
+      --transition: .22s cubic-bezier(.4,0,.2,1);
+    }
+
+    [data-theme="dark"] {
+      --bg:          #0e0e10;
+      --surface:     #17171b;
+      --surface-2:   #1f1f26;
+      --border:      rgba(255,255,255,.07);
+      --text:        #f0ede8;
+      --text-muted:  #7e7c80;
+      --text-faint:  #3d3c40;
+      --shadow:      0 4px 32px rgba(0,0,0,.5);
+    }
+
+    [data-theme="light"] {
+      --bg:          #f5f2ed;
+      --surface:     #ffffff;
+      --surface-2:   #f0ece5;
+      --border:      rgba(0,0,0,.09);
+      --text:        #1a1a1c;
+      --text-muted:  #7a7570;
+      --text-faint:  #c5c0b8;
+      --shadow:      0 4px 32px rgba(0,0,0,.1);
+    }
+
+    /* ── RESET ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      transition: background var(--transition), color var(--transition);
+      overflow-x: hidden;
+    }
+    button { cursor: pointer; font-family: inherit; border: none; background: none; }
+    input  { font-family: inherit; }
+    a      { text-decoration: none; color: inherit; }
+
+    /* ── LAYOUT ─────────────────────────────────────────────── */
+    .app {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 20px;
+    }
+
+    /* ── TOP BAR ────────────────────────────────────────────── */
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .greeting-block { flex: 1; }
+
+    .greeting-date {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 6px;
+    }
+
+    .greeting-text {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.1;
+      color: var(--text);
+    }
+
+    .greeting-text em { color: var(--amber); font-style: italic; }
+
+    .clock-block {
+      text-align: right;
+    }
+
+    .clock-time {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(36px, 5.5vw, 72px);
+      line-height: 1;
+      letter-spacing: -.02em;
+      color: var(--text);
+    }
+
+    .clock-seconds {
+      font-size: .45em;
+      color: var(--amber);
+      vertical-align: super;
+    }
+
+    .topbar-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    .icon-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .icon-btn:hover { background: var(--surface-2); transform: scale(1.08); }
+
+    /* ── CARDS ──────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    .card-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    /* ── FOCUS TIMER ────────────────────────────────────────── */
+    .timer-card { grid-column: 1; }
+
+    .timer-ring-wrap {
+      position: relative;
+      width: 180px; height: 180px;
+      margin: 0 auto 24px;
+    }
+
+    .timer-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+
+    .timer-track { fill: none; stroke: var(--text-faint); stroke-width: 5; }
+
+    .timer-prog {
+      fill: none;
+      stroke: var(--amber);
+      stroke-width: 5;
+      stroke-linecap: round;
+      transition: stroke-dashoffset .95s linear, stroke .3s;
+    }
+
+    .timer-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+
+    .timer-display {
+      font-family: 'DM Mono', monospace;
+      font-size: 36px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .timer-label-sm {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      letter-spacing: .06em;
+    }
+
+    .timer-controls {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+    }
+
+    .timer-btn {
+      padding: 8px 22px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      transition: background var(--transition), transform var(--transition);
+    }
+
+    .timer-btn.primary {
+      background: var(--amber);
+      color: #0e0e10;
+    }
+    .timer-btn.primary:hover { background: var(--amber-dim); transform: translateY(-1px); }
+
+    .timer-btn.ghost {
+      background: var(--surface-2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .timer-btn.ghost:hover { color: var(--text); transform: translateY(-1px); }
+
+    .timer-settings {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; margin-top: 18px;
+    }
+    .timer-settings label { font-size: 12px; color: var(--text-muted); }
+    .timer-settings input[type="number"] {
+      width: 56px; height: 30px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .timer-settings input[type="number"]:focus { outline: 2px solid var(--amber); }
+
+    /* session dots */
+    .session-dots {
+      display: flex; justify-content: center; gap: 6px; margin-top: 14px;
+    }
+    .sdot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--text-faint);
+      transition: background .3s;
+    }
+    .sdot.done { background: var(--amber); }
+
+    /* ── TO-DO LIST ─────────────────────────────────────────── */
+    .todo-card { grid-column: 2; grid-row: 2 / 4; }
+
+    .todo-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .todo-sort {
+      display: flex; gap: 4px;
+    }
+    .sort-btn {
+      font-size: 11px; font-weight: 600; letter-spacing: .05em;
+      padding: 4px 10px; border-radius: 20px;
+      color: var(--text-muted);
+      transition: background var(--transition), color var(--transition);
+    }
+    .sort-btn.active { background: var(--amber-glow); color: var(--amber); }
+    .sort-btn:hover:not(.active) { background: var(--surface-2); }
+
+    .todo-input-row {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+
+    .todo-input {
+      flex: 1;
+      height: 40px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0 14px;
+      color: var(--text);
+      font-size: 14px;
+      transition: border-color var(--transition);
+    }
+    .todo-input:focus { outline: none; border-color: var(--amber); }
+
+    .todo-add-btn {
+      width: 40px; height: 40px;
+      border-radius: var(--radius-sm);
+      background: var(--amber);
+      color: #0e0e10;
+      font-size: 22px;
+      font-weight: 400;
+      display: flex; align-items: center; justify-content: center;
+      transition: background var(--transition), transform var(--transition);
+      flex-shrink: 0;
+    }
+    .todo-add-btn:hover { background: var(--amber-dim); transform: scale(1.06); }
+
+    .todo-list { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
+    .todo-list::-webkit-scrollbar { width: 4px; }
+    .todo-list::-webkit-scrollbar-thumb { background: var(--text-faint); border-radius: 4px; }
+
+    .todo-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: background var(--transition), opacity var(--transition);
+      animation: slideIn .2s ease;
+    }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+    .todo-item.done { opacity: .5; }
+    .todo-item.done .todo-text { text-decoration: line-through; }
+
+    .todo-check {
+      width: 18px; height: 18px; flex-shrink: 0;
+      border: 2px solid var(--text-faint);
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .todo-check.checked { background: var(--amber); border-color: var(--amber); }
+    .todo-check.checked::after { content: '✓'; font-size: 11px; color: #0e0e10; font-weight: 700; }
+
+    .todo-text {
+      flex: 1; font-size: 14px; line-height: 1.4; color: var(--text);
+      word-break: break-word;
+    }
+
+    .todo-edit-input {
+      flex: 1; background: transparent; border: none;
+      color: var(--text); font-size: 14px; font-family: inherit;
+      border-bottom: 1px solid var(--amber); outline: none; padding: 1px 0;
+    }
+
+    .todo-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .todo-action {
+      width: 26px; height: 26px;
+      border-radius: 4px;
+      font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted);
+      transition: background var(--transition), color var(--transition);
+    }
+    .todo-action:hover { background: var(--border); }
+    .todo-action.del:hover { color: var(--red); }
+    .todo-action.edit:hover { color: var(--amber); }
+
+    .todo-empty {
+      text-align: center; padding: 36px 0;
+      color: var(--text-faint); font-size: 13px;
+    }
+    .todo-empty span { font-size: 28px; display: block; margin-bottom: 8px; }
+
+    .todo-stats {
+      display: flex; gap: 16px; margin-top: 14px;
+      padding-top: 14px; border-top: 1px solid var(--border);
+    }
+    .todo-stat { font-size: 12px; color: var(--text-muted); }
+    .todo-stat strong { color: var(--text); }
+
+    /* ── QUICK LINKS ────────────────────────────────────────── */
+    .links-card { grid-column: 1; }
+
+    .links-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+      gap: 10px; margin-bottom: 16px;
+    }
+
+    .link-item {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 14px 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition), border-color var(--transition);
+      position: relative;
+      text-align: center;
+    }
+    .link-item:hover { background: var(--amber-glow); border-color: var(--amber); transform: translateY(-2px); }
+
+    .link-favicon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      object-fit: contain;
+      background: var(--surface);
+    }
+    .link-favicon-placeholder {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: var(--amber-glow);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--amber);
+    }
+    .link-name { font-size: 11px; font-weight: 500; color: var(--text); line-height: 1.2; word-break: break-word; }
+
+    .link-del {
+      position: absolute; top: 4px; right: 4px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--red); color: #fff;
+      font-size: 10px; font-weight: 700;
+      display: none; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+    .link-item:hover .link-del { display: flex; }
+
+    .links-add-row { display: flex; gap: 8px; }
+    .links-add-row input {
+      flex: 1; height: 36px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 0 12px;
+      color: var(--text); font-size: 13px;
+      transition: border-color var(--transition);
+    }
+    .links-add-row input:focus { outline: none; border-color: var(--amber); }
+    .links-add-btn {
+      height: 36px; padding: 0 16px;
+      background: var(--amber); color: #0e0e10;
+      border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .links-add-btn:hover { background: var(--amber-dim); transform: translateY(-1px); }
+
+    /* ── NAME MODAL ─────────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: opacity var(--transition);
+    }
+    .modal-backdrop.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      width: 340px;
+      transform: translateY(20px);
+      transition: transform var(--transition);
+    }
+    .modal-backdrop.open .modal { transform: none; }
+
+    .modal h2 { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 8px; }
+    .modal p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+    .modal input {
+      width: 100%; height: 44px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 0 14px;
+      color: var(--text); font-size: 15px;
+      margin-bottom: 14px;
+    }
+    .modal input:focus { outline: 2px solid var(--amber); }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .modal-save {
+      padding: 10px 24px; background: var(--amber); color: #0e0e10;
+      border-radius: var(--radius-sm); font-weight: 700; font-size: 14px;
+    }
+    .modal-cancel {
+      padding: 10px 16px; color: var(--text-muted); font-size: 14px;
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
+    }
+
+    /* ── TOAST ──────────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--surface); border: 1px solid var(--amber);
+      border-radius: var(--radius-sm); padding: 10px 20px;
+      font-size: 13px; font-weight: 500; color: var(--amber);
+      z-index: 200; transition: transform .3s ease, opacity .3s;
+      opacity: 0; pointer-events: none; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* ── RESPONSIVE ─────────────────────────────────────────── */
+    @media (max-width: 760px) {
+      .app { grid-template-columns: 1fr; }
+      .topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .clock-block { text-align: left; }
+      .topbar-controls { flex-direction: row; align-items: center; }
+      .todo-card { grid-column: 1; grid-row: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── TOAST ── -->
+<div class="toast" id="toast"></div>
+
+<!-- ── NAME MODAL ── -->
+<div class="modal-backdrop" id="nameModal">
+  <div class="modal">
+    <h2>What's your name?</h2>
+    <p>Personalize your dashboard greeting.</p>
+    <input type="text" id="nameInput" placeholder="Enter your name…" maxlength="30" />
+    <div class="modal-actions">
+      <button class="modal-cancel" id="modalCancel">Skip</button>
+      <button class="modal-save" id="modalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div class="app">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="greeting-block">
+      <div class="greeting-date" id="greetDate"></div>
+      <h1 class="greeting-text" id="greetText"></h1>
+    </div>
+
+    <div style="display:flex;align-items:flex-end;gap:24px;">
+      <div class="clock-block">
+        <div class="clock-time" id="clockTime"></div>
+      </div>
+      <div class="topbar-controls">
+        <button class="icon-btn" id="themeToggle" title="Toggle theme">🌙</button>
+        <button class="icon-btn" id="editNameBtn" title="Edit name">✏️</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- TIMER CARD -->
+  <div class="card timer-card">
+    <div class="card-label">Focus Timer</div>
+
+    <div class="timer-ring-wrap">
+      <svg class="timer-svg" viewBox="0 0 180 180">
+        <circle class="timer-track" cx="90" cy="90" r="80" />
+        <circle class="timer-prog" id="timerRing" cx="90" cy="90" r="80"
+          stroke-dasharray="502.65" stroke-dashoffset="0" />
+      </svg>
+      <div class="timer-center">
+        <div class="timer-display" id="timerDisplay">25:00</div>
+        <div class="timer-label-sm" id="timerStatus">Ready</div>
+      </div>
+    </div>
+
+    <div class="timer-controls">
+      <button class="timer-btn ghost" id="timerReset">Reset</button>
+      <button class="timer-btn primary" id="timerToggle">Start</button>
+    </div>
+
+    <div class="timer-settings">
+      <label for="pomoDuration">Session (min)</label>
+      <input type="number" id="pomoDuration" min="1" max="120" value="25" />
+    </div>
+
+    <div class="session-dots" id="sessionDots">
+      <div class="sdot"></div><div class="sdot"></div>
+      <div class="sdot"></div><div class="sdot"></div>
+    </div>
+  </div>
+
+  <!-- QUICK LINKS CARD -->
+  <div class="card links-card">
+    <div class="card-label">Quick Links</div>
+
+    <div class="links-grid" id="linksGrid"></div>
+
+    <div class="links-add-row">
+      <input type="text" id="linkName" placeholder="Label…" maxlength="20" />
+      <input type="url" id="linkUrl" placeholder="https://…" />
+      <button class="links-add-btn" id="addLinkBtn">+ Add</button>
+    </div>
+  </div>
+
+  <!-- TO-DO CARD -->
+  <div class="card todo-card">
+    <div class="todo-header">
+      <div class="card-label" style="margin-bottom:0;">Tasks</div>
+      <div class="todo-sort">
+        <button class="sort-btn active" data-sort="added">Added</button>
+        <button class="sort-btn" data-sort="alpha">A–Z</button>
+        <button class="sort-btn" data-sort="done">Done</button>
+      </div>
+    </div>
+
+    <div class="todo-input-row">
+      <input type="text" class="todo-input" id="todoInput" placeholder="Add a new task…" maxlength="120" />
+      <button class="todo-add-btn" id="todoAddBtn">+</button>
+    </div>
+
+    <div class="todo-list" id="todoList"></div>
+
+    <div class="todo-stats" id="todoStats"></div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   STORAGE HELPERS
+═══════════════════════════════════════════════════════════ */
+const get = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+const set = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+/* ═══════════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   THEME
+═══════════════════════════════════════════════════════════ */
+let theme = get('theme') || 'dark';
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+applyTheme();
+document.getElementById('themeToggle').addEventListener('click', () => {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  set('theme', theme);
+  applyTheme();
+});
+
+/* ═══════════════════════════════════════════════════════════
+   CLOCK & GREETING
+═══════════════════════════════════════════════════════════ */
+const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+  const h12 = h % 12 || 12;
+  const ampm = h < 12 ? 'AM' : 'PM';
+
+  document.getElementById('clockTime').innerHTML =
+    `${h12}:${pad(m)}<span style="font-size:.38em;color:var(--amber);vertical-align:super">${pad(s)}</span> <span style="font-size:.32em;color:var(--text-muted)">${ampm}</span>`;
+
+  document.getElementById('greetDate').textContent =
+    `${DAYS[now.getDay()]} · ${MONTHS[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+
+  let phase = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const name = get('userName');
+  const nameHtml = name ? `, <em>${name}</em>` : '';
+  document.getElementById('greetText').innerHTML = `${phase}${nameHtml}.`;
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ═══════════════════════════════════════════════════════════
+   NAME MODAL
+═══════════════════════════════════════════════════════════ */
+const nameModal  = document.getElementById('nameModal');
+const nameInput  = document.getElementById('nameInput');
+
+function openNameModal() {
+  nameInput.value = get('userName') || '';
+  nameModal.classList.add('open');
+  setTimeout(() => nameInput.focus(), 100);
+}
+function closeNameModal() { nameModal.classList.remove('open'); }
+
+document.getElementById('editNameBtn').addEventListener('click', openNameModal);
+document.getElementById('modalCancel').addEventListener('click', closeNameModal);
+document.getElementById('modalSave').addEventListener('click', () => {
+  const v = nameInput.value.trim();
+  if (v) { set('userName', v); showToast(`Welcome, ${v}!`); }
+  else { localStorage.removeItem('userName'); }
+  updateClock(); closeNameModal();
+});
+nameInput.addEventListener('keydown', e => e.key === 'Enter' && document.getElementById('modalSave').click());
+nameModal.addEventListener('click', e => { if (e.target === nameModal) closeNameModal(); });
+
+// Auto-open on first visit
+if (!get('userName')) setTimeout(openNameModal, 600);
+
+/* ═══════════════════════════════════════════════════════════
+   FOCUS TIMER
+═══════════════════════════════════════════════════════════ */
+const CIRC = 2 * Math.PI * 80; // 502.65
+let pomoDuration = (get('pomoDuration') || 25) * 60;
+let timerRemaining = pomoDuration;
+let timerRunning = false;
+let timerInterval = null;
+let sessionsDone = 0;
+
+const timerRing    = document.getElementById('timerRing');
+const timerDisplay = document.getElementById('timerDisplay');
+const timerStatus  = document.getElementById('timerStatus');
+const timerToggle  = document.getElementById('timerToggle');
+const timerReset   = document.getElementById('timerReset');
+const pomoDurInput = document.getElementById('pomoDuration');
+const sessionDots  = document.getElementById('sessionDots');
+
+pomoDurInput.value = get('pomoDuration') || 25;
+
+function renderTimer() {
+  const mins = Math.floor(timerRemaining / 60);
+  const secs = timerRemaining % 60;
+  timerDisplay.textContent = `${pad(mins)}:${pad(secs)}`;
+  const frac = timerRemaining / pomoDuration;
+  timerRing.style.strokeDashoffset = CIRC * (1 - frac);
+  const pct = Math.round((1 - frac) * 100);
+  timerRing.style.stroke = pct > 85 ? 'var(--red)' : 'var(--amber)';
+}
+
+function renderSessionDots() {
+  const dots = sessionDots.querySelectorAll('.sdot');
+  dots.forEach((d, i) => d.classList.toggle('done', i < (sessionsDone % 4)));
+}
+
+function startTimer() {
+  timerRunning = true;
+  timerToggle.textContent = 'Pause';
+  timerStatus.textContent = 'Focusing…';
+  timerInterval = setInterval(() => {
+    timerRemaining--;
+    renderTimer();
+    if (timerRemaining <= 0) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      timerStatus.textContent = '✓ Done!';
+      timerToggle.textContent = 'Start';
+      sessionsDone++;
+      renderSessionDots();
+      showToast('🎉 Session complete! Take a break.');
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerToggle.textContent = 'Start';
+  timerStatus.textContent = 'Paused';
+}
+
+timerToggle.addEventListener('click', () => {
+  if (timerRemaining === 0) return;
+  timerRunning ? pauseTimer() : startTimer();
+});
+
+timerReset.addEventListener('click', () => {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerRemaining = pomoDuration;
+  timerToggle.textContent = 'Start';
+  timerStatus.textContent = 'Ready';
+  renderTimer();
+});
+
+pomoDurInput.addEventListener('change', () => {
+  let val = parseInt(pomoDurInput.value);
+  if (isNaN(val) || val < 1) val = 1;
+  if (val > 120) val = 120;
+  pomoDurInput.value = val;
+  set('pomoDuration', val);
+  pomoDuration = val * 60;
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerRemaining = pomoDuration;
+  timerToggle.textContent = 'Start';
+  timerStatus.textContent = 'Ready';
+  renderTimer();
+});
+
+renderTimer();
+renderSessionDots();
+
+/* ═══════════════════════════════════════════════════════════
+   TO-DO LIST
+═══════════════════════════════════════════════════════════ */
+let tasks = get('tasks') || [];
+let sortMode = 'added';
+let editingId = null;
+
+function saveTasks() { set('tasks', tasks); }
+
+function getSorted() {
+  const t = [...tasks];
+  if (sortMode === 'alpha') return t.sort((a,b) => a.text.localeCompare(b.text));
+  if (sortMode === 'done')  return t.sort((a,b) => a.done - b.done);
+  return t; // 'added' = insertion order
+}
+
+function renderTasks() {
+  const list  = document.getElementById('todoList');
+  const stats = document.getElementById('todoStats');
+  const sorted = getSorted();
+
+  if (sorted.length === 0) {
+    list.innerHTML = `<div class="todo-empty"><span>📋</span>No tasks yet — add one above!</div>`;
+    stats.innerHTML = '';
+    return;
+  }
+
+  list.innerHTML = sorted.map(task => `
+    <div class="todo-item${task.done ? ' done' : ''}" data-id="${task.id}">
+      <div class="todo-check${task.done ? ' checked' : ''}" data-action="toggle" data-id="${task.id}"></div>
+      ${editingId === task.id
+        ? `<input class="todo-edit-input" id="edit-${task.id}" value="${escHtml(task.text)}" maxlength="120" />`
+        : `<span class="todo-text">${escHtml(task.text)}</span>`}
+      <div class="todo-actions">
+        ${editingId === task.id
+          ? `<button class="todo-action" data-action="save" data-id="${task.id}" title="Save">✓</button>`
+          : `<button class="todo-action edit" data-action="edit" data-id="${task.id}" title="Edit">✏️</button>`}
+        <button class="todo-action del" data-action="delete" data-id="${task.id}" title="Delete">🗑</button>
+      </div>
+    </div>
+  `).join('');
+
+  if (editingId) {
+    const inp = document.getElementById(`edit-${editingId}`);
+    if (inp) { inp.focus(); inp.select(); }
+  }
+
+  const done  = tasks.filter(t => t.done).length;
+  const total = tasks.length;
+  stats.innerHTML = `
+    <span class="todo-stat"><strong>${total}</strong> total</span>
+    <span class="todo-stat"><strong>${done}</strong> done</span>
+    <span class="todo-stat"><strong>${total - done}</strong> remaining</span>
+  `;
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function addTask() {
+  const inp = document.getElementById('todoInput');
+  const text = inp.value.trim();
+  if (!text) return;
+
+  // Prevent duplicates (case-insensitive)
+  const dup = tasks.find(t => t.text.toLowerCase() === text.toLowerCase());
+  if (dup) { showToast('⚠️ Task already exists!'); inp.select(); return; }
+
+  tasks.push({ id: Date.now(), text, done: false });
+  saveTasks();
+  inp.value = '';
+  renderTasks();
+}
+
+document.getElementById('todoAddBtn').addEventListener('click', addTask);
+document.getElementById('todoInput').addEventListener('keydown', e => e.key === 'Enter' && addTask());
+
+document.getElementById('todoList').addEventListener('click', e => {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const id = Number(el.dataset.id);
+  const action = el.dataset.action;
+
+  if (action === 'toggle') {
+    const t = tasks.find(t => t.id === id);
+    if (t) { t.done = !t.done; saveTasks(); renderTasks(); }
+  }
+  if (action === 'delete') {
+    tasks = tasks.filter(t => t.id !== id);
+    if (editingId === id) editingId = null;
+    saveTasks(); renderTasks();
+    showToast('Task deleted.');
+  }
+  if (action === 'edit') {
+    editingId = id; renderTasks();
+  }
+  if (action === 'save') {
+    const inp = document.getElementById(`edit-${id}`);
+    if (inp) {
+      const newText = inp.value.trim();
+      if (!newText) return;
+      const dup = tasks.find(t => t.id !== id && t.text.toLowerCase() === newText.toLowerCase());
+      if (dup) { showToast('⚠️ Task already exists!'); return; }
+      const t = tasks.find(t => t.id === id);
+      if (t) t.text = newText;
+      saveTasks();
+    }
+    editingId = null; renderTasks();
+  }
+});
+
+document.getElementById('todoList').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.classList.contains('todo-edit-input')) {
+    const id = Number(e.target.id.replace('edit-',''));
+    const saveBtn = document.querySelector(`[data-action="save"][data-id="${id}"]`);
+    if (saveBtn) saveBtn.click();
+  }
+  if (e.key === 'Escape' && e.target.classList.contains('todo-edit-input')) {
+    editingId = null; renderTasks();
+  }
+});
+
+// Sort buttons
+document.querySelectorAll('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    sortMode = btn.dataset.sort;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTasks();
+  });
+});
+
+renderTasks();
+
+/* ═══════════════════════════════════════════════════════════
+   QUICK LINKS
+═══════════════════════════════════════════════════════════ */
+let links = get('quickLinks') || [
+  { id: 1, name: 'Gmail',     url: 'https://mail.google.com' },
+  { id: 2, name: 'YouTube',   url: 'https://youtube.com' },
+  { id: 3, name: 'GitHub',    url: 'https://github.com' },
+  { id: 4, name: 'Wikipedia', url: 'https://wikipedia.org' },
+];
+
+function saveLinks() { set('quickLinks', links); }
+
+function getFavicon(url) {
+  try {
+    const host = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
+  } catch { return null; }
+}
+
+function renderLinks() {
+  const grid = document.getElementById('linksGrid');
+  if (links.length === 0) {
+    grid.innerHTML = `<div style="color:var(--text-faint);font-size:12px;grid-column:1/-1;padding:12px 0;">Add your first link below!</div>`;
+    return;
+  }
+  grid.innerHTML = links.map(l => {
+    const fav = getFavicon(l.url);
+    const icon = fav
+      ? `<img class="link-favicon" src="${fav}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><div class="link-favicon-placeholder" style="display:none">🔗</div>`
+      : `<div class="link-favicon-placeholder">🔗</div>`;
+    return `
+      <div class="link-item" data-id="${l.id}" data-url="${escHtml(l.url)}" title="${escHtml(l.url)}">
+        ${icon}
+        <span class="link-name">${escHtml(l.name)}</span>
+        <button class="link-del" data-action="dellink" data-id="${l.id}" title="Remove">✕</button>
+      </div>
+    `;
+  }).join('');
+}
+
+document.getElementById('linksGrid').addEventListener('click', e => {
+  const delBtn = e.target.closest('[data-action="dellink"]');
+  if (delBtn) {
+    e.stopPropagation();
+    const id = Number(delBtn.dataset.id);
+    links = links.filter(l => l.id !== id);
+    saveLinks(); renderLinks();
+    return;
+  }
+  const item = e.target.closest('.link-item');
+  if (item) window.open(item.dataset.url, '_blank', 'noopener');
+});
+
+document.getElementById('addLinkBtn').addEventListener('click', () => {
+  const nameEl = document.getElementById('linkName');
+  const urlEl  = document.getElementById('linkUrl');
+  let name = nameEl.value.trim();
+  let url  = urlEl.value.trim();
+  if (!url) { showToast('Please enter a URL.'); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  if (!name) {
+    try { name = new URL(url).hostname.replace('www.',''); } catch { name = url; }
+  }
+  links.push({ id: Date.now(), name, url });
+  saveLinks(); renderLinks();
+  nameEl.value = ''; urlEl.value = '';
+  showToast(`Added "${name}"!`);
+});
+
+document.getElementById('linkUrl').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('addLinkBtn').click();
+});
+
+renderLinks();
+</script>
+</body>
+</html>
